@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Video Request — DVR Assistant</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purple:#802872;--purple-light:#9d378d;--purple-dim:rgba(128,40,114,0.06);--purple-border:rgba(128,40,114,0.3);
+  --amber:#f59e0b;--green:#10b981;--red:#ef4444;
+  --text:#212121;--text-sec:#3f3f3d;--text-tri:#706d6b;
+  --border:#d2d1d0;--border-lt:#e6e5e3;--white:#fff;--surface:#f9fafb;
+  --canvas-bg:#d7ecec;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 10px 25px -5px rgba(0,0,0,0.1);
+  --radius:12px;--radius-sm:8px;
+}
+.material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:18px;line-height:1;display:inline-block;white-space:nowrap;direction:ltr;vertical-align:middle}
+html,body{height:100%;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);-webkit-font-smoothing:antialiased;background:var(--canvas-bg)}
+
+.topbar{display:flex;align-items:center;height:56px;padding:0 20px;background:var(--white);border-bottom:1px solid var(--border);gap:12px;flex-shrink:0}
+.logo{height:32px;border-radius:6px}
+.logo-text{font-weight:800;font-size:15px;letter-spacing:.02em;line-height:1;color:var(--text)}
+.logo-text small{display:block;font-weight:400;font-size:11px;letter-spacing:.08em}
+.topbar-title{font-size:15px;font-weight:600;color:var(--text);margin-left:8px}
+.beta{font-size:10px;font-weight:600;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;letter-spacing:.04em}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.fleet-input{background:var(--surface);border:1px solid var(--border);font-family:inherit;font-size:12px;padding:6px 12px;border-radius:6px;width:180px;outline:none}
+.fleet-input:focus{border-color:var(--purple)}
+.tb-btn{font-family:inherit;font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:none;cursor:pointer;transition:all .15s}
+.tb-btn-p{background:var(--purple);color:#fff}.tb-btn-p:hover{background:var(--purple-light)}.tb-btn-p:disabled{opacity:.4;cursor:not-allowed}
+.tb-btn-g{background:var(--white);color:var(--text-sec);border:1px solid var(--border)}.tb-btn-g:hover{border-color:var(--purple);color:var(--purple)}
+.status-pill{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tri)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--border)}.status-dot.live{background:var(--green);box-shadow:0 0 5px var(--green)}
+.fleet-note{font-size:11px;color:var(--green);white-space:nowrap}
+.fleet-note.err{color:var(--red)}
+
+.shell{display:flex;flex-direction:column;height:100vh}
+.main{display:flex;flex:1;overflow:hidden}
+.chat-panel{width:38%;min-width:320px;display:flex;flex-direction:column;background:var(--white);border-right:1px solid var(--border);overflow:hidden}
+.canvas-panel{flex:1;display:flex;flex-direction:column;background:var(--canvas-bg);overflow:hidden}
+
+.landing{flex:1;display:flex;flex-direction:column;align-items:center;padding:60px 20px 20px;overflow-y:auto}
+.landing-title{font-size:22px;font-weight:500;color:var(--text);margin-bottom:24px;text-align:center}
+.search-pill-wrap{width:100%;max-width:420px;position:relative;margin-bottom:16px}
+.search-pill{display:flex;flex-direction:column;background:var(--white);border:2px solid var(--border);border-radius:22px;padding:10px 14px;gap:8px;transition:border-color .15s}
+.search-pill:focus-within{border-color:var(--purple)}
+.pill-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;width:100%}
+.pill-tags:empty{display:none}
+.pill-input-row{display:flex;align-items:center;gap:10px;width:100%}
+#main-input{flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:var(--text);min-width:60px}
+#main-input::placeholder{color:var(--text-tri)}
+.send-btn{width:36px;height:36px;border-radius:50%;flex-shrink:0;background:var(--purple);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:background .15s}
+.send-btn:hover{background:var(--purple-light)}
+.send-btn svg{width:14px;height:14px}
+
+.filter-panel{position:absolute;left:0;right:0;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;display:none;z-index:20}
+.filter-panel.open{display:block}
+.landing .filter-panel{top:calc(100% + 6px)}
+.chat-pill-wrap .filter-panel{bottom:calc(100% + 6px)}
+.filter-panel-head{padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-sec);border-bottom:1px solid var(--border-lt);display:flex;align-items:center;justify-content:space-between;background:var(--border-lt);text-transform:uppercase;letter-spacing:.04em}
+.filter-panel-head .back-btn{background:none;border:none;cursor:pointer;color:var(--purple);font-size:10px;font-family:inherit;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.filter-item-scroll{max-height:240px;overflow-y:auto}
+.filter-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border-lt);cursor:pointer;transition:background .1s;gap:10px}
+.filter-row:last-child{border-bottom:none}
+.filter-row:hover,.filter-row.focused{background:var(--purple-dim)}
+.filter-icon{width:28px;height:28px;border-radius:6px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text-sec)}
+.filter-info{flex:1}.filter-name{font-size:13px;font-weight:500;color:var(--text)}
+.filter-sub{font-size:11px;color:var(--text-tri);margin-top:1px}
+.filter-chevron{color:var(--text-tri);opacity:.6}
+.no-data{padding:20px;text-align:center;font-size:12px;color:var(--text-tri)}
+.date-form{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.date-form .ts-grid{margin-bottom:0}
+
+.quick-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:420px;margin-top:4px}
+.quick-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:10px}
+.quick-card:hover{border-color:var(--purple);box-shadow:var(--shadow-sm)}
+.qc-icon{width:30px;height:30px;border-radius:6px;background:var(--purple-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qc-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.qc-sub{font-size:11px;color:var(--text-tri);line-height:1.4}
+
+.messages-area{flex:1;overflow-y:auto;padding:20px 0;display:none;flex-direction:column}
+.messages-area.active{display:flex}
+.messages-area::-webkit-scrollbar{width:4px}.messages-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.msg{padding:10px 20px;display:flex;gap:12px}
+.msg-avatar{width:28px;height:28px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;margin-top:2px}
+.msg.user .msg-avatar{background:var(--purple);color:#fff}
+.msg.assistant .msg-avatar{background:var(--surface);border:1px solid var(--border);color:var(--text-sec)}
+.msg-body{flex:1;min-width:0}
+.msg-role{font-size:11px;font-weight:600;color:var(--text-tri);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em}
+.msg.user{flex-direction:row-reverse}
+.msg.user .msg-body{flex:0 1 auto;max-width:78%;margin-left:auto;text-align:right}
+.msg.user .msg-role{color:var(--purple)}
+.msg-tags{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:6px}
+.msg-text{display:inline-block;text-align:left;background:var(--purple);color:#fff;padding:9px 14px;border-radius:14px 14px 3px 14px;font-size:13px;line-height:1.5;font-weight:500;white-space:pre-wrap}
+.gen-response{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text-sec);white-space:pre-wrap}
+.gen-response.failed{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.thinking-note{font-size:11px;color:var(--text-tri);margin-top:6px;white-space:pre-wrap}
+.typing{display:flex;gap:4px;align-items:center;padding:6px 0}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--text-tri);animation:blink 1.2s infinite ease-in-out}
+.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+.typing-label{font-size:11px;color:var(--text-tri);margin-left:8px}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+.action-chips{display:flex;gap:8px;padding:8px 20px 8px 60px;flex-wrap:wrap}
+.chip-group-label{width:100%;font-size:10px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
+.action-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--purple);color:var(--purple);font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;cursor:pointer;transition:all .15s;font-family:inherit;background:var(--white)}
+.action-chip:hover{background:var(--purple-dim)}
+.action-chip:disabled{opacity:.4;cursor:not-allowed}
+.action-chips-lg .action-chip{font-size:14px;font-weight:600;padding:10px 20px;border-radius:24px;border-width:2px;box-shadow:var(--shadow-sm)}
+.action-chips-lg .action-chip:hover{background:var(--purple);color:#fff}
+
+.card-wrap{padding:8px 20px 8px 60px}
+.interrupt-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+.interrupt-card-head{padding:12px 14px;border-bottom:1px solid var(--border-lt);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text)}
+.ic-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--purple)}
+.interrupt-card-body{padding:14px}
+.ts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.ts-grid.two{grid-template-columns:1fr 1fr}
+.ts-label{font-size:10px;font-weight:600;color:var(--text-tri);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.ts-input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;color-scheme:light}
+.ts-input:focus{border-color:var(--purple)}
+.btn-row{display:flex;gap:6px}
+.btn{font-family:inherit;font-size:12px;font-weight:500;padding:8px 16px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.btn:hover{opacity:.9}.btn-purple{background:var(--purple);color:#fff}
+.btn-ghost{background:var(--surface);color:var(--text-sec);border:1px solid var(--border)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.dvr-params{background:var(--surface);border-radius:8px;border:1px solid var(--border);padding:12px;margin-bottom:12px;display:flex;flex-direction:column;gap:6px}
+.dvr-param-row{display:flex;gap:10px;font-size:12px}
+.dvr-param-key{color:var(--text-tri);width:90px;flex-shrink:0;font-weight:500}
+.dvr-param-val{color:var(--text);font-weight:600;word-break:break-all}
+.clip-window{display:flex;gap:10px;margin-bottom:12px}
+.clip-box{flex:1;background:var(--white);border:1px solid var(--purple-border);border-radius:8px;padding:10px 12px}
+.clip-box .ts-label{color:var(--purple)}
+.clip-box .clip-val{font-size:12px;font-weight:600;color:var(--text)}
+
+.result-banner{margin:8px 20px 8px 60px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:var(--radius-sm);padding:12px 14px}
+.result-banner-label{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.result-banner-id{font-size:13px;color:var(--text);font-weight:500;word-break:break-all}
+.result-banner .dvr-params{background:var(--white);border-color:#6ee7b7;margin:8px 0 0}
+.req-list{margin:8px 20px 8px 60px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.req-row{display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border-lt);font-size:12px;background:var(--white)}
+.req-row:last-child{border-bottom:none}
+.req-row.head{background:var(--border-lt);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-sec)}
+.req-row span:nth-child(1){flex:2;word-break:break-all}.req-row span:nth-child(2){flex:1}.req-row span:nth-child(3){flex:1.5}
+
+.chat-input-bar{border-top:1px solid var(--border-lt);padding:12px 16px;background:var(--white);display:none}
+.chat-input-bar.active{display:block}
+.selected-trip-banner{display:none;align-items:center;justify-content:space-between;gap:10px;background:var(--purple-dim);border:1px solid var(--purple-border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--purple)}
+.selected-trip-banner.open{display:flex}
+.stb-clear{background:none;border:none;color:var(--purple);cursor:pointer;font-size:12px;font-weight:600;flex-shrink:0;font-family:inherit}
+.chat-pill-wrap{position:relative}
+.chat-pill{display:flex;flex-direction:column;background:var(--white);border:2px solid var(--border);border-radius:22px;padding:8px 8px 8px 14px;gap:8px;transition:border-color .15s}
+.chat-pill:focus-within{border-color:var(--purple)}
+#chat-input{flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:var(--text);resize:none;min-height:20px;max-height:100px;line-height:1.4;padding-top:3px}
+#chat-input::placeholder{color:var(--text-tri)}
+.chat-send-btn{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:var(--purple);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff}
+.chat-send-btn svg{width:12px;height:12px}
+.chat-disclaimer{font-size:10px;color:var(--text-tri);text-align:center;margin-top:6px}
+.selected-tag{display:inline-flex;align-items:center;gap:4px;background:var(--purple-dim);border:1px solid var(--purple-border);color:var(--purple);font-size:11px;font-weight:500;padding:2px 7px 2px 9px;border-radius:14px;white-space:nowrap}
+.selected-tag .material-symbols-outlined{font-size:13px}
+.selected-tag-remove{background:none;border:none;cursor:pointer;color:var(--purple);font-size:13px;line-height:1;padding:0 1px;opacity:.7}
+.selected-tag-remove:hover{opacity:1}
+
+.canvas-header{padding:14px 20px;border-bottom:1px solid #b8d8e3;background:#e4f1f5;font-size:13px;color:var(--text-sec);display:flex;align-items:center;justify-content:space-between}
+.canvas-header-title{font-weight:500;color:var(--text)}
+.canvas-count{font-size:12px;color:var(--text-tri)}
+.canvas-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-tri);font-size:13px;gap:8px}
+.trip-table{flex:1;overflow-y:auto;background:var(--surface)}
+.tt-head{display:flex;padding:10px 20px;background:#cde5ec;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;color:var(--text-sec);text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;z-index:2}
+.tt-row{display:flex;padding:12px 20px;border-bottom:1px solid #c8dfe7;align-items:flex-start;background:var(--white)}
+.tt-row:hover{background:#f0f7fa}
+.tt-row.expired-row{opacity:.75}
+.tt-row.tt-row-selected{background:var(--purple-dim);box-shadow:inset 3px 0 0 var(--purple)}
+.tt-col{overflow:hidden;text-overflow:ellipsis;padding-right:8px}
+.col-asset{width:18%;flex-shrink:0}.col-driver{width:14%;flex-shrink:0}.col-start{width:13%;flex-shrink:0}
+.col-pinged{width:13%;flex-shrink:0}.col-events{width:17%;flex-shrink:0}.col-dvr{width:13%;flex-shrink:0}.col-action{width:12%;flex-shrink:0;text-align:right;padding-right:0}
+.tt-asset{font-size:13px;font-weight:500;color:var(--text)}.tt-trip{font-size:10px;color:var(--text-tri);margin-top:1px;word-break:break-all}
+.tt-cell{font-size:12px;color:var(--text)}
+.tt-sub{font-size:11px;color:var(--text-tri);margin-top:2px}
+.pinged-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle;background:#6b7280}
+.pinged-dot.live{background:var(--green)}
+.badge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap;display:inline-block}
+.badge-available{background:#ecfdf5;color:#065f46}.badge-expiring{background:#fef3c7;color:#92400e}.badge-expired,.badge-unknown{background:#f3f4f6;color:#6b7280}
+.evt-toggle{font-size:12px;color:var(--purple);cursor:pointer;font-weight:500;user-select:none}
+.evt-list{margin-top:4px;display:none}
+.evt-list.open{display:block}
+.evt-badge{font-size:10px;padding:2px 6px;border-radius:3px;margin:1px 2px 1px 0;display:inline-block;background:#fbeaf0;color:#993556}
+.req-btn{font-family:inherit;font-size:11px;font-weight:500;padding:6px 12px;border-radius:5px;border:none;cursor:pointer;background:var(--purple);color:#fff;white-space:nowrap}
+.req-btn:hover{background:var(--purple-light)}
+.req-btn:disabled{background:#e5e7eb;color:#9ca3af;cursor:not-allowed}
+.req-btn.req-btn-selected{background:var(--green)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <img class="logo" src="/images/logo.jpg" alt="Light Metrics" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'logo-text',innerHTML:'LIGHT<small>METRICS</small>'}))"/>
+    <span class="topbar-title">Video Request</span>
+    <span class="beta">BETA</span>
+    <div class="topbar-right">
+      <span class="fleet-note" id="fleet-note"></span>
+      <input class="fleet-input" id="fleet-id-input" placeholder="Fleet ID…"/>
+      <input class="fleet-input" id="client-id-input" placeholder="Account…"/>
+      <button class="tb-btn tb-btn-p" id="load-btn" onclick="loadFleet()">Load fleet</button>
+      <div class="status-pill"><div class="status-dot" id="status-dot"></div><span id="status-label">Connecting…</span></div>
+      <button class="tb-btn tb-btn-g" onclick="newChat()">+ New chat</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="chat-panel">
+      <div class="landing" id="landing">
+        <div class="landing-title">What footage do you need?</div>
+        <div class="search-pill-wrap">
+          <div class="search-pill">
+            <div class="pill-tags" id="landing-tags"></div>
+            <div class="pill-input-row">
+              <input id="main-input" type="text" placeholder="Ask anything or type @ to filter…"/>
+              <button class="send-btn" onclick="sendFrom('main-input')"><svg viewBox="0 0 24 24" fill="white"><path d="M2 21L23 12 2 3v7l15 2-15 2z"/></svg></button>
+            </div>
+          </div>
+          <div class="filter-panel" id="main-input-panel"></div>
+        </div>
+        <div class="quick-cards">
+          <div class="quick-card" onclick="prefill('Show the last trip of driver ')"><div class="qc-icon"><span class="material-symbols-outlined">person</span></div><div><div class="qc-title">Driver lookup</div><div class="qc-sub">Last trip, incident history</div></div></div>
+          <div class="quick-card" onclick="prefill('Get DVR footage for trip ')"><div class="qc-icon"><span class="material-symbols-outlined">videocam</span></div><div><div class="qc-title">Trip footage</div><div class="qc-sub">Clips, timelapse, departure</div></div></div>
+        </div>
+      </div>
+
+      <div class="messages-area" id="messages-area"></div>
+
+      <div class="chat-input-bar" id="chat-input-bar">
+        <div class="selected-trip-banner" id="selected-trip-banner"></div>
+        <div class="chat-pill-wrap">
+          <div class="filter-panel" id="chat-input-panel"></div>
+          <div class="chat-pill">
+            <div class="pill-tags" id="chat-tags"></div>
+            <div class="pill-input-row">
+              <textarea id="chat-input" rows="1" placeholder="Ask anything or type @ to filter…"></textarea>
+              <button class="chat-send-btn" onclick="sendFrom('chat-input')"><svg viewBox="0 0 24 24" fill="white"><path d="M2 21L23 12 2 3v7l15 2-15 2z"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <div class="chat-disclaimer">AI may make mistakes — verify trip details before submitting a video request</div>
+      </div>
+    </div>
+
+    <div class="canvas-panel">
+      <div class="canvas-header" id="canvas-header" style="display:none">
+        <span class="canvas-header-title" id="canvas-title">Trip results</span>
+        <span class="canvas-count" id="canvas-count"></span>
+      </div>
+      <div class="canvas-empty" id="canvas-empty">
+        <span class="material-symbols-outlined" style="font-size:40px;opacity:.3">videocam</span>
+        <div>No trips found</div>
+        <div style="font-size:11px">Search to see matching trips here</div>
+      </div>
+      <div class="trip-table" id="trip-table" style="display:none">
+        <div class="tt-head">
+          <span class="tt-col col-asset">Asset / trip</span>
+          <span class="tt-col col-driver">Driver</span>
+          <span class="tt-col col-start">Start time</span>
+          <span class="tt-col col-pinged">Last pinged</span>
+          <span class="tt-col col-events">Safety events</span>
+          <span class="tt-col col-dvr">DVR until</span>
+          <span class="tt-col col-action">Action</span>
+        </div>
+        <div id="tt-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let ws = null, wsReady = false, wsQueue = [], reconnectDelay = 1000;
+let fleet = {fleet_id: null, client_id: null, drivers: [], assets: [], events: []};
+let threadId = newThreadId();
+let tags = [];                    // @ filters, kept in the input until removed: {kind, label, text}
+let pendingQuestion = null;       // {node, purpose, question} of the last needs_input response
+let trips = [];                   // trips shown in the canvas
+let selectedTrip = null;          // trip picked with "Use trip" while just listing trips
+let pendingDvrType = null;        // "DVR clip" / "timelapse" chosen before a trip
+let typingEl = null;
+
+const VIDEO_FORMATS = {road: 'Road', driver: 'Driver', sideBySide: 'Side by side', pictureInPicture: 'Picture in picture', separate: 'Separate'};
+const RESOLUTIONS = ['320x180', '640x360', '1280x720', '1920x1080'];
+const DURATIONS = {clip: [0.5, 1, 1.5, 2, 2.5, 3], timelapse: [5, 10, 15, 20, 30, 45, 60]};
+const TAG_ICONS = {driver: 'person', asset: 'local_shipping', event: 'warning', date: 'calendar_month'};
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function newThreadId() {
+  return (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+}
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function el(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/chat`);
+  ws.onopen = () => {
+    wsReady = true; reconnectDelay = 1000;
+    document.getElementById('status-dot').classList.add('live');
+    document.getElementById('status-label').textContent = 'Connected';
+    // the server keeps the fleet per connection, so load it again after a reconnect
+    if (fleet.fleet_id) wsQueue.unshift({type: 'load_fleet', fleet_id: fleet.fleet_id, client_id: fleet.client_id});
+    wsQueue.forEach(m => ws.send(JSON.stringify(m)));
+    wsQueue = [];
+  };
+  ws.onclose = () => {
+    wsReady = false;
+    document.getElementById('status-dot').classList.remove('live');
+    document.getElementById('status-label').textContent = 'Reconnecting…';
+    setTimeout(connect, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+  };
+  ws.onerror = () => ws.close();
+  ws.onmessage = e => {
+    try { handleServerMessage(JSON.parse(e.data)); } catch (err) { console.error('Bad server message', err); }
+  };
+}
+function wsSend(payload) {
+  if (ws && wsReady) ws.send(JSON.stringify(payload)); else wsQueue.push(payload);
+}
+connect();
+
+function handleServerMessage(msg) {
+  if (msg.type === 'fleet_loaded') {
+    fleet = {fleet_id: msg.fleet_id, client_id: msg.client_id, drivers: msg.drivers, assets: msg.assets, events: msg.events};
+    setFleetNote(`${msg.drivers.length} drivers · ${msg.assets.length} assets`);
+    document.getElementById('load-btn').disabled = false;
+  } else if (msg.type === 'progress') {
+    if (msg.thread_id === threadId) showTyping(msg.label + '…');
+  } else if (msg.type === 'response') {
+    if (msg.thread_id === threadId) renderResponse(msg);
+  } else if (msg.type === 'error') {
+    hideTyping();
+    document.getElementById('load-btn').disabled = false;
+    if (document.getElementById('messages-area').classList.contains('active')) addAssistant(msg.message, 'failed');
+    else setFleetNote(msg.message, true);
+  }
+}
+
+// ── Fleet ──────────────────────────────────────────────────────────────────
+function loadFleet() {
+  const fleet_id = document.getElementById('fleet-id-input').value.trim();
+  const client_id = document.getElementById('client-id-input').value.trim();
+  if (!fleet_id || !client_id) { setFleetNote('Enter the fleet ID and the account', true); return; }
+  document.getElementById('load-btn').disabled = true;
+  setFleetNote('Loading…');
+  wsSend({type: 'load_fleet', fleet_id, client_id});
+}
+function setFleetNote(text, isError) {
+  const n = document.getElementById('fleet-note');
+  n.textContent = text; n.classList.toggle('err', !!isError);
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────────
+function openChat() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('messages-area').classList.add('active');
+  document.getElementById('chat-input-bar').classList.add('active');
+}
+function newChat() {
+  threadId = newThreadId();
+  pendingQuestion = null; selectedTrip = null; pendingDvrType = null; tags = []; trips = [];
+  document.getElementById('messages-area').innerHTML = '';
+  document.getElementById('messages-area').classList.remove('active');
+  document.getElementById('chat-input-bar').classList.remove('active');
+  document.getElementById('landing').style.display = '';
+  document.getElementById('main-input').value = '';
+  renderTags(); renderTrips([]); renderSelectedTrip();
+}
+function prefill(text) {
+  const input = document.getElementById('main-input');
+  input.value = text; input.focus();
+}
+function scrollDown() {
+  const area = document.getElementById('messages-area');
+  area.scrollTop = area.scrollHeight;
+}
+function append(node) {
+  document.getElementById('messages-area').appendChild(node);
+  scrollDown();
+  return node;
+}
+function addUser(text, msgTags) {
+  const tagHtml = (msgTags || []).map(t => `<span class="selected-tag"><span class="material-symbols-outlined">${TAG_ICONS[t.kind]}</span>${esc(t.label)}</span>`).join('');
+  append(el(`<div class="msg user"><div class="msg-avatar">U</div><div class="msg-body"><div class="msg-role">You</div>
+    ${tagHtml ? `<div class="msg-tags">${tagHtml}</div>` : ''}<div class="msg-text">${esc(text)}</div></div></div>`));
+}
+function addAssistant(text, variant, note) {
+  return append(el(`<div class="msg assistant"><div class="msg-avatar"><span class="material-symbols-outlined">smart_display</span></div>
+    <div class="msg-body"><div class="msg-role">DVR Assistant</div><div class="gen-response ${variant || ''}">${esc(text)}</div>
+    ${note ? `<div class="thinking-note">${esc(note)}</div>` : ''}</div></div>`));
+}
+function showTyping(label) {
+  if (!typingEl) {
+    typingEl = append(el(`<div class="msg assistant"><div class="msg-avatar"><span class="material-symbols-outlined">smart_display</span></div>
+      <div class="msg-body"><div class="msg-role">DVR Assistant</div><div class="typing"><span></span><span></span><span></span><span class="typing-label"></span></div></div></div>`));
+  }
+  typingEl.querySelector('.typing-label').textContent = label || '';
+  scrollDown();
+}
+function hideTyping() {
+  if (typingEl) { typingEl.remove(); typingEl = null; }
+}
+
+// sends what the user typed, with the @ filters added as words the extract node reads
+function sendFrom(inputId) {
+  const input = document.getElementById(inputId);
+  const text = input.value.trim();
+  if (!text && !tags.length) return;
+  closePanel(inputId);
+  const filterText = tags.map(t => t.text).join(', ');
+  const query = [text, filterText && `(${filterText})`].filter(Boolean).join(' ');
+  input.value = '';
+  sendQuery(query, text || filterText, [...tags]);
+}
+function sendQuery(query, shown, msgTags) {
+  openChat();
+  addUser(shown || query, msgTags);
+  showTyping('Reading your request…');
+  wsSend({type: 'query', thread_id: threadId, query});
+}
+function sendAnswer(value, label) {
+  openChat();
+  addUser(label);
+  showTyping('Reading your answer…');
+  wsSend({type: 'answer', thread_id: threadId, value, label});
+}
+
+// ── Responses ──────────────────────────────────────────────────────────────
+function renderResponse(r) {
+  hideTyping();
+  pendingQuestion = r.status === 'needs_input' ? r.question : null;
+
+  if (r.trips) renderTrips(r.trips);
+  if (r.selected_trip) { selectedTrip = null; renderSelectedTrip(); highlightTrip(r.selected_trip.tripId); }
+
+  if (r.dvr_confirmation) {
+    addAssistant(`Please confirm the ${r.dvr_confirmation.type === 'timelapse' ? 'timelapse' : 'DVR clip'} request.`);
+    renderConfirmCard(r.dvr_confirmation);
+  } else if (r.message) {
+    addAssistant(r.message, r.status === 'failed' ? 'failed' : '');
+  }
+
+  if (r.status === 'needs_input' && !r.dvr_confirmation) renderOptions(r.options || [], r.question);
+  if (r.dvr_request) renderRequestBanner(r.dvr_request);
+  if (r.upload_requests && r.upload_requests.length) renderUploadRequests(r.upload_requests);
+
+  // just listed trips: offer to raise a footage request for one of them
+  if (r.status === 'success' && r.trips && r.trips.length && !r.selected_trip && !r.dvr_request) {
+    addAssistant('Would you like to raise a footage request for any of these trips?');
+    renderDvrTypeChips(false);
+  }
+}
+
+function optionLabel(o) {
+  if (typeof o === 'string') return o;
+  if (o.label) return o.label;
+  if (o.event_type) return `${o.event_type} at ${formatTime(o.event_timeUTC, true)}`;
+  return JSON.stringify(o);
+}
+// trips, drivers and assets are answered with their ID, so two with the same name stay apart
+function optionValue(o) {
+  if (typeof o !== 'object' || o === null) return o;
+  return o.tripId || o.driverId || o.assetId || o;
+}
+function renderOptions(options, question) {
+  const isTripPick = question && question.purpose === 'trip_id';
+  const box = el('<div class="action-chips"></div>');
+  const addChip = (value, label) => {
+    const chip = el(`<button class="action-chip">${esc(label)}</button>`);
+    chip.onclick = () => { box.querySelectorAll('button').forEach(b => b.disabled = true); sendAnswer(value, label); };
+    box.appendChild(chip);
+  };
+  if (Array.isArray(options)) {
+    // trips are picked from the table, chips only while the list is short
+    if (isTripPick && options.length > 10) return;
+    options.forEach(o => addChip(optionValue(o), optionLabel(o)));
+  } else {
+    Object.entries(options).forEach(([group, items]) => {
+      if (!items || !items.length) return;
+      box.appendChild(el(`<div class="chip-group-label">${esc(group)}</div>`));
+      items.forEach(o => addChip(optionValue(o), optionLabel(o)));
+    });
+  }
+  if (box.children.length) append(box);
+}
+
+function renderDvrTypeChips(large) {
+  const box = el(`<div class="action-chips ${large ? 'action-chips-lg' : ''}"></div>`);
+  [['DVR clip', 'videocam', 'Request a DVR clip'], ['timelapse', 'timelapse', 'Request a timelapse']].forEach(([type, icon, label]) => {
+    const chip = el(`<button class="action-chip"><span class="material-symbols-outlined">${icon}</span>${label}</button>`);
+    chip.onclick = () => {
+      pendingDvrType = type;
+      if (selectedTrip) requestFootage();
+      else addAssistant(`Pick the trip for the ${type} with "Use trip" in the table.`);
+    };
+    box.appendChild(chip);
+  });
+  append(box);
+}
+function requestFootage() {
+  const trip = selectedTrip, type = pendingDvrType;
+  pendingDvrType = null;
+  sendQuery(`Request a ${type} for trip ${trip.tripId}`);
+}
+
+function renderConfirmCard(p) {
+  const isTimelapse = p.type === 'timelapse';
+  const start = parseUtc(p.clipStart);
+  const minutes = Math.round((parseUtc(p.clipEnd) - start) / 6000) / 10;
+  const durations = [...new Set([...DURATIONS[isTimelapse ? 'timelapse' : 'clip'], minutes])].filter(m => m > 0 && m <= p.maxMinutes).sort((a, b) => a - b);
+  const durLabel = m => m < 1 ? `${m * 60} sec` : `${m} min`;
+  const card = el(`<div class="card-wrap"><div class="interrupt-card">
+    <div class="interrupt-card-head"><span class="ic-dot"></span>Confirm ${isTimelapse ? 'timelapse' : 'DVR clip'} request</div>
+    <div class="interrupt-card-body">
+      <div class="dvr-params">
+        <div class="dvr-param-row"><span class="dvr-param-key">Driver</span><span class="dvr-param-val">${esc(p.driverName ? `${p.driverName} (${p.driverId})` : p.driverId)}</span></div>
+        <div class="dvr-param-row"><span class="dvr-param-key">Asset</span><span class="dvr-param-val">${esc(p.assetId)}</span></div>
+        <div class="dvr-param-row"><span class="dvr-param-key">Type</span><span class="dvr-param-val">${isTimelapse ? 'Timelapse' : 'Clip'}</span></div>
+      </div>
+      <div class="clip-window">
+        <div class="clip-box"><div class="ts-label">Clip start</div><div class="clip-val" data-start></div></div>
+        <div class="clip-box"><div class="ts-label">Clip end</div><div class="clip-val" data-end></div></div>
+      </div>
+      <div class="ts-grid">
+        <div><div class="ts-label">Video format</div><select class="ts-input" data-format>
+          ${Object.entries(VIDEO_FORMATS).map(([v, l]) => `<option value="${v}" ${v === p.videoFormat ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div><div class="ts-label">Duration (max ${p.maxMinutes}m)</div><select class="ts-input" data-duration>
+          ${durations.map(m => `<option value="${m}" ${m === minutes ? 'selected' : ''}>${durLabel(m)}</option>`).join('')}</select></div>
+        <div><div class="ts-label">Resolution</div><select class="ts-input" data-resolution>
+          ${RESOLUTIONS.map(r => `<option value="${r}" ${r === p.videoResolution ? 'selected' : ''}>${r.replace('x', '×')}</option>`).join('')}</select></div>
+      </div>
+      <div class="btn-row"><button class="btn btn-purple" data-submit>Submit request</button><button class="btn btn-ghost" data-cancel>Cancel</button></div>
+    </div></div></div>`);
+
+  const q = s => card.querySelector(s);
+  const clipEnd = () => new Date(start.getTime() + Number(q('[data-duration]').value) * 60000);
+  const showTimes = () => { q('[data-start]').textContent = formatUtc(start); q('[data-end]').textContent = formatUtc(clipEnd()); };
+  const lock = () => card.querySelectorAll('select,button').forEach(x => x.disabled = true);
+  q('[data-duration]').onchange = showTimes;
+  q('[data-submit]').onclick = () => {
+    lock();
+    openChat();
+    addUser(`Submit ${isTimelapse ? 'timelapse' : 'DVR clip'} request`);
+    showTyping('Placing the request…');
+    wsSend({type: 'dvr_confirm', thread_id: threadId, video_format: q('[data-format]').value,
+            video_resolution: q('[data-resolution]').value, clip_start: formatUtc(start), clip_end: formatUtc(clipEnd())});
+  };
+  q('[data-cancel]').onclick = () => { lock(); addUser('Cancel'); wsSend({type: 'dvr_cancel', thread_id: threadId}); };
+  showTimes();
+  append(card);
+}
+
+function renderRequestBanner(req) {
+  const p = req.params || {};
+  const rows = [['Type', p.type === 'timelapse' ? 'Timelapse' : 'Clip'], ['Trip', p.tripId], ['Driver', p.driverId], ['Asset', p.assetId],
+                ['Start (UTC)', formatUtc(parseUtc(p.clipStart))], ['End (UTC)', formatUtc(parseUtc(p.clipEnd))],
+                ['Video format', VIDEO_FORMATS[p.videoFormat] || p.videoFormat], ['Resolution', (p.videoResolution || '').replace('x', '×')]];
+  append(el(`<div class="result-banner"><div class="result-banner-label">Request placed</div>
+    <div class="result-banner-id">Request ID: ${esc(req.uploadRequestId)}</div>
+    <div class="dvr-params">${rows.map(([k, v]) => `<div class="dvr-param-row"><span class="dvr-param-key">${k}</span><span class="dvr-param-val">${esc(v)}</span></div>`).join('')}</div></div>`));
+}
+function renderUploadRequests(reqs) {
+  append(el(`<div class="req-list"><div class="req-row head"><span>Request ID</span><span>Status</span><span>Created</span></div>
+    ${reqs.map(r => `<div class="req-row"><span>${esc(r.requestId)}</span><span>${esc(r.status)}</span><span>${esc(formatTime(r.timestamp, true))}</span></div>`).join('')}</div>`));
+}
+
+// ── Trips canvas ───────────────────────────────────────────────────────────
+function renderTrips(list) {
+  trips = list || [];
+  const has = trips.length > 0;
+  document.getElementById('canvas-empty').style.display = has ? 'none' : '';
+  document.getElementById('trip-table').style.display = has ? '' : 'none';
+  document.getElementById('canvas-header').style.display = has ? '' : 'none';
+  document.getElementById('canvas-count').textContent = `${trips.length} trips`;
+  const body = document.getElementById('tt-body');
+  body.innerHTML = '';
+  trips.forEach(t => {
+    const live = t.lastPingedLabel === 'Ongoing';
+    const events = t.events || [];
+    const row = el(`<div class="tt-row ${t.dvr_status === 'expired' ? 'expired-row' : ''}" data-trip="${esc(t.tripId)}">
+      <div class="tt-col col-asset"><div class="tt-asset">${esc(t.assetId)}</div><div class="tt-trip">${esc(t.tripId)}</div></div>
+      <div class="tt-col col-driver tt-cell">${esc(t.driverName)}</div>
+      <div class="tt-col col-start tt-cell">${esc(formatTime(t.startTimeUTC))}</div>
+      <div class="tt-col col-pinged"><div class="tt-cell"><span class="pinged-dot ${live ? 'live' : ''}"></span>${esc(formatTime(t.lastPinged))}</div><div class="tt-sub">${esc(t.lastPingedLabel)}</div></div>
+      <div class="tt-col col-events">${events.length
+        ? `<span class="evt-toggle">${t.totalEvents} events ▸</span><div class="evt-list">${events.map(e => `<span class="evt-badge">${esc(e.type)} × ${e.count}</span>`).join('')}</div>`
+        : '<span class="tt-cell">None</span>'}</div>
+      <div class="tt-col col-dvr"><span class="badge badge-${esc(t.dvr_status)}">${esc(cap(t.dvr_status))}</span><div class="tt-sub">${esc(t.dvr_until || '')}</div></div>
+      <div class="tt-col col-action"><button class="req-btn" ${t.dvr_status === 'expired' ? 'disabled' : ''}>Use trip</button></div></div>`);
+    const toggle = row.querySelector('.evt-toggle');
+    if (toggle) toggle.onclick = () => {
+      const open = row.querySelector('.evt-list').classList.toggle('open');
+      toggle.textContent = `${t.totalEvents} events ${open ? '▾' : '▸'}`;
+    };
+    row.querySelector('.req-btn').onclick = () => useTrip(t);
+    body.appendChild(row);
+  });
+}
+function useTrip(t) {
+  // answering "which trip do you mean?"
+  if (pendingQuestion && pendingQuestion.purpose === 'trip_id') {
+    highlightTrip(t.tripId);
+    sendAnswer(t.tripId, `${t.driverName} · ${t.assetId} · ${formatTime(t.startTimeUTC)}`);
+    return;
+  }
+  selectedTrip = t;
+  highlightTrip(t.tripId);
+  renderSelectedTrip();
+  openChat();
+  if (pendingDvrType) { requestFootage(); return; }
+  addAssistant(`Trip ${t.tripId} (${t.driverName}, ${t.assetId}) selected. Which footage do you need?`);
+  renderDvrTypeChips(true);
+}
+function highlightTrip(tripId) {
+  document.querySelectorAll('.tt-row').forEach(r => {
+    const on = r.dataset.trip === tripId;
+    r.classList.toggle('tt-row-selected', on);
+    const btn = r.querySelector('.req-btn');
+    btn.classList.toggle('req-btn-selected', on);
+    btn.textContent = on ? 'Selected' : 'Use trip';
+  });
+}
+function renderSelectedTrip() {
+  const banner = document.getElementById('selected-trip-banner');
+  banner.classList.toggle('open', !!selectedTrip);
+  if (!selectedTrip) { banner.innerHTML = ''; return; }
+  banner.innerHTML = `<span>Selected trip: <strong>${esc(selectedTrip.assetId)}</strong> · ${esc(selectedTrip.driverName)} · ${esc(formatTime(selectedTrip.startTimeUTC))}</span><button class="stb-clear">Clear</button>`;
+  banner.querySelector('.stb-clear').onclick = () => { selectedTrip = null; renderSelectedTrip(); highlightTrip(null); };
+}
+
+// ── Times (all UTC) ────────────────────────────────────────────────────────
+function parseUtc(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return new Date(v);
+  let s = String(v).replace(' ', 'T');
+  if (!/Z$|[+-]\d\d:?\d\d$/.test(s)) s += 'Z';
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+function formatTime(v, withYear) {           // "9 Oct, 03:45"
+  const d = parseUtc(v);
+  if (!d) return v || '—';
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${withYear ? ' ' + d.getUTCFullYear() : ''}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+}
+function formatUtc(d) {                      // "2026-10-09 03:35:39", what the dvr node takes
+  if (!d) return '';
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+}
+function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+
+// ── @ filters ──────────────────────────────────────────────────────────────
+const CATEGORIES = [
+  {kind: 'driver', name: 'Drivers', sub: 'Filter by driver', items: () => fleet.drivers.map(d => ({label: d.driverName, sub: d.driverId}))},
+  {kind: 'asset', name: 'Assets', sub: 'Filter by vehicle', items: () => fleet.assets.map(a => ({label: a.assetName, sub: a.assetId}))},
+  {kind: 'event', name: 'Event types', sub: 'Filter by safety event', items: () => fleet.events.map(e => ({label: e}))},
+  {kind: 'date', name: 'Date range', sub: 'Pick a start and end date'}
+];
+const acState = {};                          // per input: {category, atIdx, focus}
+
+function tagText(kind, label) {
+  return {driver: `driver ${label}`, asset: `asset ${label}`, event: `event ${label}`, date: label}[kind];
+}
+function addTag(kind, label, text) {
+  tags = tags.filter(t => t.kind !== kind);   // one filter of each kind
+  tags.push({kind, label, text: text || tagText(kind, label)});
+  renderTags();
+}
+function renderTags() {
+  ['landing-tags', 'chat-tags'].forEach(id => {
+    const box = document.getElementById(id);
+    box.innerHTML = '';
+    tags.forEach((t, i) => {
+      const tag = el(`<span class="selected-tag"><span class="material-symbols-outlined">${TAG_ICONS[t.kind]}</span>${esc(t.label)}<button class="selected-tag-remove">×</button></span>`);
+      tag.querySelector('button').onclick = () => { tags.splice(i, 1); renderTags(); };
+      box.appendChild(tag);
+    });
+  });
+}
+
+function onFilterInput(input) {
+  const st = acState[input.id] || (acState[input.id] = {category: null, atIdx: -1, focus: 0});
+  const upto = input.value.slice(0, input.selectionStart);
+  const at = upto.lastIndexOf('@');
+  if (at === -1 || /\s/.test(upto.slice(at + 1)) && !st.category) { closePanel(input.id); return; }
+  st.atIdx = at;
+  renderPanel(input, upto.slice(at + 1).toLowerCase());
+}
+function renderPanel(input, search) {
+  const st = acState[input.id];
+  const panel = document.getElementById(input.id + '-panel');
+  panel.classList.add('open');
+
+  if (!st.category) {
+    const cats = CATEGORIES.filter(c => c.name.toLowerCase().includes(search));
+    panel.innerHTML = `<div class="filter-panel-head">Filter by</div><div class="filter-item-scroll">${
+      cats.map((c, i) => `<div class="filter-row ${i === st.focus ? 'focused' : ''}" data-i="${i}"><div class="filter-icon"><span class="material-symbols-outlined">${TAG_ICONS[c.kind]}</span></div>
+        <div class="filter-info"><div class="filter-name">${c.name}</div><div class="filter-sub">${c.sub}</div></div><span class="filter-chevron">›</span></div>`).join('')
+      || '<div class="no-data">No matching filter</div>'}</div>`;
+    panel.querySelectorAll('.filter-row').forEach(row => row.onmousedown = e => { e.preventDefault(); pickCategory(input, cats[row.dataset.i]); });
+    st.rows = cats.map(c => () => pickCategory(input, c));
+    return;
+  }
+
+  const cat = st.category;
+  const head = `<div class="filter-panel-head">${cat.name}<button class="back-btn">Back</button></div>`;
+  if (cat.kind === 'date') {
+    panel.innerHTML = `${head}<div class="date-form"><div class="ts-grid two">
+      <div><div class="ts-label">From</div><input type="date" class="ts-input" data-from/></div>
+      <div><div class="ts-label">To</div><input type="date" class="ts-input" data-to/></div></div>
+      <div class="btn-row"><button class="btn btn-purple" data-apply>Apply</button></div></div>`;
+    panel.querySelector('[data-apply]').onclick = () => {
+      const from = panel.querySelector('[data-from]').value, to = panel.querySelector('[data-to]').value || from;
+      if (!from) return;
+      const fmt = s => { const d = parseUtc(s + 'T00:00:00'); return `${d.getUTCDate()} ${['January','February','March','April','May','June','July','August','September','October','November','December'][d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
+      addTag('date', from === to ? fmt(from) : `${fmt(from)} – ${fmt(to)}`, from === to ? `on ${from}` : `from ${from} to ${to}`);
+      finishFilter(input);
+    };
+  } else {
+    if (!fleet.fleet_id) {
+      panel.innerHTML = `${head}<div class="no-data">Load a fleet to filter by ${cat.name.toLowerCase()}</div>`;
+    } else {
+      const items = cat.items().filter(it => (it.label || '').toLowerCase().includes(search) || (it.sub || '').toLowerCase().includes(search)).slice(0, 50);
+      panel.innerHTML = `${head}<div class="filter-item-scroll">${
+        items.map((it, i) => `<div class="filter-row ${i === st.focus ? 'focused' : ''}" data-i="${i}"><div class="filter-icon"><span class="material-symbols-outlined">${TAG_ICONS[cat.kind]}</span></div>
+          <div class="filter-info"><div class="filter-name">${esc(it.label)}</div>${it.sub ? `<div class="filter-sub">${esc(it.sub)}</div>` : ''}</div></div>`).join('')
+        || '<div class="no-data">No matches</div>'}</div>`;
+      panel.querySelectorAll('.filter-row').forEach(row => row.onmousedown = e => { e.preventDefault(); addTag(cat.kind, items[row.dataset.i].label); finishFilter(input); });
+      st.rows = items.map(it => () => { addTag(cat.kind, it.label); finishFilter(input); });
+    }
+  }
+  panel.querySelector('.back-btn').onmousedown = e => { e.preventDefault(); st.category = null; st.focus = 0; renderPanel(input, ''); };
+}
+function pickCategory(input, cat) {
+  const st = acState[input.id];
+  st.category = cat; st.focus = 0;
+  // keep the @ and drop what was typed after it, the search starts fresh in the category
+  input.value = input.value.slice(0, st.atIdx + 1) + input.value.slice(input.selectionStart);
+  input.setSelectionRange(st.atIdx + 1, st.atIdx + 1);
+  renderPanel(input, '');
+  input.focus();
+}
+function finishFilter(input) {
+  const st = acState[input.id];
+  const end = input.value.indexOf(' ', st.atIdx);
+  input.value = (input.value.slice(0, st.atIdx) + (end === -1 ? '' : input.value.slice(end + 1))).trimStart();
+  closePanel(input.id);
+  input.focus();
+}
+function closePanel(inputId) {
+  document.getElementById(inputId + '-panel').classList.remove('open');
+  if (acState[inputId]) { acState[inputId].category = null; acState[inputId].focus = 0; }
+}
+
+['main-input', 'chat-input'].forEach(id => {
+  const input = document.getElementById(id);
+  input.addEventListener('input', () => {
+    if (id === 'chat-input') { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 100) + 'px'; }
+    onFilterInput(input);
+  });
+  input.addEventListener('keydown', e => {
+    const st = acState[id];
+    const open = document.getElementById(id + '-panel').classList.contains('open');
+    if (open && st && st.rows && ['ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      st.focus = Math.max(0, Math.min(st.rows.length - 1, st.focus + (e.key === 'ArrowDown' ? 1 : -1)));
+      onFilterInput(input);
+      return;
+    }
+    if (e.key === 'Escape') { closePanel(id); return; }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (open && st && st.rows && st.rows[st.focus]) st.rows[st.focus]();
+      else sendFrom(id);
+    }
+  });
+  input.addEventListener('blur', () => setTimeout(() => {
+    const panel = document.getElementById(id + '-panel');
+    if (!panel.contains(document.activeElement)) closePanel(id);
+  }, 150));
+});
+</script>
+</body>
+</html>

@@ -19,8 +19,8 @@ load_dotenv()
 
 logger = debug_logger()
 
-GEOAPIFY_URL = "https://api.geoapify.com/v1/geocode/search"
-AREA_TYPES = {"city", "suburb", "district", "county", "locality"}
+ARCGIS_GEOCODE_URL = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates"
+AREA_TYPES = {"Locality", "Subregion"}          # ArcGIS Addr_type for city/suburb/district/county
 
 M_PER_DEG_LAT = 111_320          # metres in 1° of latitude
 EARTH_RADIUS_M = 6_371_000
@@ -96,26 +96,28 @@ def get_trip_upload_requests(trip):
 
 
 def geocode_place(place_name):
-    """Returns up to 5 candidate places [{'name', 'lat', 'lon', 'types'}, ...] for place_name."""
+    """Returns up to 8 candidate places [{'name', 'lat', 'lon', 'types'}, ...] for place_name."""
     params = {
-        "text": place_name,
-        "format": "json",
-        "limit": 5,
-        "bias": "countrycode:none",
-        "apiKey": os.environ["GEOAPIFY_API_KEY"],
+        "SingleLine": place_name,
+        "f": "json",
+        "maxLocations": 8,
+        "outFields": "Addr_type,Type",
     }
-    resp = requests.get(GEOAPIFY_URL, params=params, timeout=5)
+    resp = requests.get(ARCGIS_GEOCODE_URL, params=params, timeout=5)
     resp.raise_for_status()
+    data = resp.json()
+    if "error" in data:  # ArcGIS reports errors with HTTP 200
+        raise RuntimeError(f"ArcGIS geocode error: {data['error']}")
 
     return [
         {
-            "name": r.get("formatted", ""),
-            "lat": r["lat"],
-            "lon": r["lon"],
-            "types": ["locality"] if r.get("result_type") in AREA_TYPES
-                     else [r.get("result_type", "")],
+            "name": c.get("address", ""),
+            "lat": c["location"]["y"],
+            "lon": c["location"]["x"],
+            "types": ["locality"] if c.get("attributes", {}).get("Addr_type") in AREA_TYPES
+                     else [c.get("attributes", {}).get("Addr_type", "")],
         }
-        for r in resp.json().get("results", [])
+        for c in data.get("candidates", [])
     ]
 
 
